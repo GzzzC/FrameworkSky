@@ -28,6 +28,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Resources;
 using UnityEngine;
 using UnityEngine.Networking;
 
@@ -50,6 +51,13 @@ namespace libx
     [RequireComponent(typeof(NetworkMonitor))]
     public class Updater : MonoBehaviour, IUpdater, INetworkMonitorListener
     {
+        enum RunMode
+        {
+            RunTimeMode,
+            BundleMode,
+            DevelopmentMode,
+        }
+        
         enum Step
         {
             Wait,
@@ -65,7 +73,7 @@ namespace libx
         [SerializeField] private string baseURL = "http://127.0.0.1:7888/DLC/";
         [SerializeField] private string gameScene = "Game.unity";
         [SerializeField] private bool enableVFS = true;
-        [SerializeField] private bool development;
+        [SerializeField] private RunMode runMode = RunMode.DevelopmentMode;
 
         public IUpdater listener { get; set; }
 
@@ -251,14 +259,28 @@ namespace libx
 
         public void StartUpdate()
         {
-            Debug.Log("StartUpdate.Development:" + development);
+            Debug.Log("StartUpdate.Development:" + runMode.ToString());
 #if UNITY_EDITOR
-            if (development)
+            if (runMode == RunMode.RunTimeMode)
+            {
+                Assets.runtimeMode = true;
+                Assets.BundleMode = true;
+            }else if (runMode == RunMode.BundleMode)
             {
                 Assets.runtimeMode = false;
+                Assets.BundleMode = true;
+                StartCoroutine(LoadGameScene());
+                return;
+            }else if (runMode == RunMode.DevelopmentMode)
+            {
+                Assets.runtimeMode = false;
+                Assets.BundleMode = false;
                 StartCoroutine(LoadGameScene());
                 return;
             }
+#else
+            Assets.runtimeMode = true;
+            Assets.BundleMode = true;
 #endif
             OnStart();
 
@@ -480,15 +502,15 @@ namespace libx
         private IEnumerator RequestCopy()
         {
             var v1 = Versions.LoadVersion(_savePath + Versions.Filename);
-            var basePath = GetStreamingAssetsPath() + "/";
+            var basePath = GetStreamingAssetsPath() + "/"; //获取自身streamingassets路径
             var request = UnityWebRequest.Get(basePath + Versions.Filename);
             var path = _savePath + Versions.Filename + ".tmp";
-            request.downloadHandler = new DownloadHandlerFile(path);
+            request.downloadHandler = new DownloadHandlerFile(path); //下载streamingassets下的ver文件，并存储为 ver.tmp
             yield return request.SendWebRequest();
             if (string.IsNullOrEmpty(request.error))
             {
                 var v2 = Versions.LoadVersion(path);
-                if (v2 > v1)
+                if (v2 > v1) //对比，如果v2 > v1  说明包体内的资源版本大于热更资源（第一次装包，或者有新版本的安装包）
                 {
                     var mb = MessageBox.Show("提示", "是否将资源解压到本地？", "解压", "跳过");
                     yield return mb;
@@ -583,6 +605,7 @@ namespace libx
         private IEnumerator LoadGameScene()
         {
             OnMessage("正在初始化");
+            
             var init = Assets.Initialize();
             yield return init;
             if (string.IsNullOrEmpty(init.error))

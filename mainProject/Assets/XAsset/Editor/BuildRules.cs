@@ -44,7 +44,13 @@ namespace libx
     [Serializable]
     public class RuleAsset
     {
+        /// <summary>
+        /// bundle名
+        /// </summary>
         public string bundle;
+        /// <summary>
+        /// asset路径
+        /// </summary>
         public string path;
     }
 
@@ -96,9 +102,10 @@ namespace libx
 
     public class BuildRules : ScriptableObject
     {
-        private readonly Dictionary<string, string> _asset2Bundles = new Dictionary<string, string>();
-        private readonly Dictionary<string, string[]> _conflicted = new Dictionary<string, string[]>();
-        private readonly List<string> _duplicated = new List<string>();
+        private readonly Dictionary<string, string> _asset2Bundles = new Dictionary<string, string>(); //key：资源路径  //value：所属bundle名
+        private readonly Dictionary<string, string[]> _conflicted = new Dictionary<string, string[]>(); //存在冲突的bundle文件
+        private readonly List<string> _duplicated = new List<string>(); //被多个bundle所依赖的asset
+        //asset轨迹，key：asset  value：存在依赖asset的bundle集合
         private readonly Dictionary<string, HashSet<string>> _tracker = new Dictionary<string, HashSet<string>>();
 		[Header("Patterns")]
 		public string searchPatternAsset = "*.asset";
@@ -109,7 +116,7 @@ namespace libx
 		public string searchPatternPrefab = "*.prefab";
 		public string searchPatternScene = "*.unity";
 		public string searchPatternText = "*.txt,*.bytes,*.json,*.csv,*.xml,*htm,*.html,*.yaml,*.fnt";
-        public static bool nameByHash = true;
+        public static bool nameByHash = true; //bundle名是否启用hash值命名
         
 		[Tooltip("构建的版本号")]
 		[Header("Builds")] 
@@ -157,6 +164,11 @@ namespace libx
 
         #region Private
 
+        /// <summary>
+        /// 判断asset的有效性
+        /// </summary>
+        /// <param name="asset"></param>
+        /// <returns>true有效 - false无效</returns>
         internal static bool ValidateAsset(string asset)
         {
             if (!asset.StartsWith("Assets/")) return false;
@@ -189,11 +201,11 @@ namespace libx
             }
 
             assets.Add(bundle);
-            if (assets.Count > 1)
+            if (assets.Count > 1) //说明此asset被多个其他asset引用
             {
                 string bundleName;
                 _asset2Bundles.TryGetValue(asset, out bundleName);
-                if (string.IsNullOrEmpty(bundleName))
+                if (string.IsNullOrEmpty(bundleName)) //TODO:这里感觉有待商榷，如果存在某一个bundle中就不筛出来了吗？
                 {
                     _duplicated.Add(asset);
                 }
@@ -272,7 +284,7 @@ namespace libx
 
         private void AnalysisAssets()
         {
-            var getBundles = GetBundles();
+            var getBundles = GetBundles(); //得到key：bundle  value：asset集合
             int i = 0, max = getBundles.Count;
             foreach (var item in getBundles)
             {

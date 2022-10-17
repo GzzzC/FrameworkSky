@@ -33,7 +33,6 @@ using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using Debug = UnityEngine.Debug;
 using Object = UnityEngine.Object;
-
 namespace libx
 {
     public enum LoadState
@@ -78,7 +77,7 @@ namespace libx
 
         internal virtual void Load()
         {
-            if (!Assets.runtimeMode && Assets.loadDelegate != null)
+            if (!Assets.BundleMode && Assets.loadDelegate != null)
                 asset = Assets.loadDelegate(url, assetType);
             if (asset == null)
             {
@@ -91,7 +90,7 @@ namespace libx
             if (asset == null)
                 return;
 
-            if (!Assets.runtimeMode)
+            if (!Assets.BundleMode)
             {
                 if (!(asset is GameObject))
                     Resources.UnloadAsset(asset);
@@ -178,15 +177,25 @@ namespace libx
         internal override void Load()
         {
             _assetName = Path.GetFileName(url);
-            if (Assets.runtimeMode)
+            if (Assets.BundleMode)
             {
-                var assetBundleName = _assetName.Replace(".asset", ".unity3d").ToLower();
+                var assetBundleName = _assetName.Replace(".asset", Assets.Extension).ToLower();
                 _request = Assets.LoadBundle(assetBundleName, true);
                 _request.completed = Request_completed;
                 loadState = LoadState.LoadAssetBundle;
             }
             else
             {
+#if UNITY_EDITOR
+                string path = Assets.ManifestAsset;
+                var asset = UnityEditor.AssetDatabase.LoadAssetAtPath<Manifest> (path);
+                if (asset == null) {
+                    asset = ScriptableObject.CreateInstance<Manifest> ();
+                    UnityEditor.AssetDatabase.CreateAsset (asset, path);
+                    UnityEditor.AssetDatabase.SaveAssets ();
+                }
+                Assets.OnLoadManifest(asset); 
+#endif
                 loadState = LoadState.Loaded;
             }
         }
@@ -223,6 +232,17 @@ namespace libx
                 _request.Release();
                 _request = null;
             }
+        }
+    }
+
+    public class LocalAssetRequest : AssetRequest
+    {
+        internal override void Load()
+        {
+#if UNITY_EDITOR
+            asset = UnityEditor.AssetDatabase.LoadAssetAtPath(url, assetType);
+            loadState = LoadState.Loaded;
+#endif
         }
     }
 
@@ -514,7 +534,7 @@ namespace libx
 
         internal override void Load()
         {
-            if (!string.IsNullOrEmpty(assetBundleName))
+            if (Assets.BundleMode && !string.IsNullOrEmpty(assetBundleName))
             {
                 bundle = Assets.LoadBundleAsync(assetBundleName);
                 loadState = LoadState.LoadAssetBundle;

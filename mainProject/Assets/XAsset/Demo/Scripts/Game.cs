@@ -16,6 +16,31 @@ public class Game : MonoBehaviour
 	List<GameObject> _gos = new List<GameObject> ();
 	List<AssetRequest> _requests = new List<AssetRequest> ();
 
+	public void NewOnLoad()
+	{
+		StartCoroutine (NewLoadAsset ());
+	}
+
+	private IEnumerator NewLoadAsset ()
+	{
+		string spriteName = "Icon_dolor12.png";
+		var request = LoadSprite (spriteName);
+		if (request != null)
+		{
+			yield return request;
+			if (!string.IsNullOrEmpty (request.error)) {
+				request.Release ();
+				yield break;
+			} 
+			var go = Instantiate (temp.gameObject, temp.transform.parent);
+			go.SetActive (true);
+			go.name = request.asset.name;
+			var image = go.GetComponent<Image> ();
+			image.sprite = request.asset as Sprite; 
+			_gos.Add (go);
+		}
+	}
+
 	public void OnLoad ()
 	{
 		StartCoroutine (LoadAsset ());
@@ -23,13 +48,15 @@ public class Game : MonoBehaviour
 
 	AssetRequest LoadSprite (string path)
 	{
-		var request = Assets.LoadAsset (path, typeof(Sprite));
+		var fileName = Path.GetFileName(path);
+		var request = GameResourcesManager.Instance.LoadAssetAsync<Sprite>(fileName);
+		// var request = Assets.LoadAsset (path, typeof(Sprite));
 		_requests.Add (request);
 		return request;
 	}
 
 	public void OnLoadAll ()
-	{ 
+	{
 		StartCoroutine (LoadAll (_assets.Length));
 	}
 

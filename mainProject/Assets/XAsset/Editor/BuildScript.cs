@@ -78,6 +78,7 @@ namespace libx
 					File.Copy (src, dest, true);
 				}
 			}
+			AssetDatabase.Refresh();
 		}
 
 		public static string GetPlatformName ()
@@ -171,6 +172,37 @@ namespace libx
 				Directory.CreateDirectory (outputPath);
 
 			return outputPath;
+		}
+
+		public static void BuildManifest()
+		{
+			var outputPath = CreateAssetBundleDirectory ();
+			var rules = GetBuildRules ();
+			
+			var manifest = GetManifest ();
+			var dirs = new List<string> ();
+			var assets = new List<AssetRef> ();
+			for (var i = 0; i < rules.ruleAssets.Length; i++) {
+				var item = rules.ruleAssets [i];
+				var path = item.path;
+				var dir = Path.GetDirectoryName (path).Replace("\\", "/");
+				var index = dirs.FindIndex (o => o.Equals (dir));
+				if (index == -1) {
+					index = dirs.Count;
+					dirs.Add (dir);
+				}
+
+				var asset = new AssetRef { bundle = 0, dir = index, name = Path.GetFileName (path) };
+				assets.Add (asset);
+			}
+
+			manifest.dirs = dirs.ToArray ();
+			manifest.assets = assets.ToArray ();
+			manifest.bundles = new[] { new BundleRef(){name = "Temp"} };
+			
+			EditorUtility.SetDirty (manifest);
+			AssetDatabase.SaveAssets ();
+			AssetDatabase.Refresh ();
 		}
 
 		public static void BuildAssetBundles ()

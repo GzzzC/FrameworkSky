@@ -39,10 +39,22 @@ namespace libx
     {
         public static readonly string ManifestAsset = "Assets/Manifest.asset";
         public static readonly string Extension = ".unity3d";
-
+        
         public static bool runtimeMode = true;
         public static Func<string, Type, Object> loadDelegate = null;
         private const string TAG = "[Assets]";
+
+        private static bool _bundleMode = true;
+        public static bool BundleMode
+        {
+            get
+            {
+                if (runtimeMode)
+                    return true;
+                return _bundleMode;
+            }
+            set { _bundleMode = value; }
+        }
 
         [Conditional("LOG_ENABLE")]
         private static void Log(string s)
@@ -118,10 +130,21 @@ namespace libx
             _activeVariants.Clear();
             _assetToBundles.Clear();
             _bundleToDependencies.Clear();
+            _assetNamePathMap.Clear();
         }
 
         private static SceneAssetRequest _runningScene;
-        
+
+        public static string GetAssetPath(string fileName)
+        {
+            var fullPath = string.Empty;
+            if (_assetNamePathMap.TryGetValue(fileName, out fullPath))
+            {
+                return fullPath;
+            }
+            return fullPath;
+        }
+
         public static SceneAssetRequest LoadSceneAsync(string path, bool additive)
         {
             if (string.IsNullOrEmpty(path))
@@ -198,6 +221,10 @@ namespace libx
 
         #region Private
 
+        /// <summary>
+        /// 解析manifest文件
+        /// </summary>
+        /// <param name="manifest"></param>
         internal static void OnLoadManifest(Manifest manifest)
         {
             _activeVariants.AddRange(manifest.activeVariants); 
@@ -212,9 +239,11 @@ namespace libx
             foreach (var item in assets)
             {
                 var path = string.Format("{0}/{1}", dirs[item.dir], item.name);
+                var fileName = Path.GetFileName(item.name);
                 if (item.bundle >= 0 && item.bundle < bundles.Length)
                 {
                     _assetToBundles[path] = bundles[item.bundle].name;
+                    _assetNamePathMap[fileName] = path;
                 }
                 else
                 {
@@ -289,7 +318,7 @@ namespace libx
                 return null;
             }
 
-            path = GetExistPath(path);
+            path = GetExistPath(path); //这一步后面再看要不要吧
 
             AssetRequest request;
             if (_assets.TryGetValue(path, out request))
@@ -300,7 +329,7 @@ namespace libx
             }
 
             string assetBundleName;
-            if (GetAssetBundleName(path, out assetBundleName))
+            if (BundleMode && GetAssetBundleName(path, out assetBundleName))
             {
                 request = async
                     ? new BundleAssetAsyncRequest(assetBundleName)
@@ -335,7 +364,7 @@ namespace libx
         private static string GetExistPath(string path)
         {
 #if UNITY_EDITOR
-            if (!runtimeMode)
+            if (!BundleMode)
             {
                 if (File.Exists(path))
                     return path;
@@ -365,6 +394,13 @@ namespace libx
             return path;
         }
 
+        public static bool GetAssetPath(string assetName, out string path)
+        {
+            if (_assetNamePathMap.TryGetValue(assetName, out path))
+                return true;
+            return false;
+        }
+
         #endregion
 
         #region Bundles
@@ -384,6 +420,8 @@ namespace libx
         private static Dictionary<string, string> _assetToBundles = new Dictionary<string, string>();
 
         private static Dictionary<string, string[]> _bundleToDependencies = new Dictionary<string, string[]>();
+
+        private static Dictionary<string, string> _assetNamePathMap = new Dictionary<string, string>();
 
         internal static bool GetAssetBundleName(string path, out string assetBundleName)
         {

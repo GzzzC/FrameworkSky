@@ -36,6 +36,7 @@ namespace libx
     public static class MenuItems
     {
         private const string KApplyBuildRules = "Assets/Bundles/Build Rules";
+        private const string KBuildManifest = "Assets/Bundles/Build Manifest";
         private const string KBuildAssetBundles = "Assets/Bundles/Build Bundles";
         private const string KBuildPlayer = "Assets/Bundles/Build Player";
 		private const string KViewDataPath = "Assets/Bundles/View Bundles";
@@ -124,6 +125,17 @@ namespace libx
             BuildScript.ApplyBuildRules();
             watch.Stop();
             Debug.Log("ApplyBuildRules " + watch.ElapsedMilliseconds + " ms.");
+        }
+
+        [MenuItem(KBuildManifest)]
+        private static void BuildManifest()
+        {
+            var watch = new Stopwatch();
+            watch.Start();
+            BuildScript.ApplyBuildRules();
+            BuildScript.BuildManifest();
+            watch.Stop();
+            Debug.Log("ApplyBuildRules " + watch.ElapsedMilliseconds + " ms."); 
         }
 
         [MenuItem(KBuildAssetBundles)]
