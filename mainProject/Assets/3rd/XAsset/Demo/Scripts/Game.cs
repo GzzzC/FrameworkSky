@@ -23,7 +23,7 @@ public class Game : MonoBehaviour
 
 	private IEnumerator NewLoadAsset ()
 	{
-		string spriteName = "Icon_dolor12.png";
+		string spriteName = "Icon_dolor.png";
 		var request = LoadSprite (spriteName);
 		if (request != null)
 		{
