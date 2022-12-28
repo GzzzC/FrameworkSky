@@ -4,7 +4,7 @@ using libx;
 using UnityEngine;
 using System;
 
-public class GameResourcesManager : Singleton<GameResourcesManager>
+public class GameResourcesManager : SingletonBehaviour<GameResourcesManager>
 {
 
     public AssetRequest LoadAssetAsync<T>(string assetName)
