@@ -5,6 +5,7 @@ namespace FSM
     public interface IFsmState<TStateType>
     {
         public TStateType StateType { get; }
+        public IFsmController<TStateType> Controller { get; set; }
         public bool Updatable { get; }
         public void OnInit();
         public void OnEnter(System.Object data = null);
@@ -15,15 +16,11 @@ namespace FSM
     public abstract class FsmStateBase<TStateType> : IFsmState<TStateType>
     {
         public abstract TStateType StateType { get; }
-        public readonly FsmControllerBase<TStateType> Controller;
+        public IFsmController<TStateType> Controller{ get; set; }
         
         public virtual bool Updatable => false;
 
-        public FsmStateBase()
-        {
-            
-        }
-
+        
         public virtual void OnInit() { }
         public virtual void OnEnter(System.Object data = null) { }
         public virtual void OnExit() { }

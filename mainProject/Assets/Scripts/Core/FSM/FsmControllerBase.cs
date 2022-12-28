@@ -45,6 +45,7 @@ namespace FSM
             if (!AllStates.TryGetValue(state.StateType, out IFsmState<T> fsmState))
             {
                 AllStates[state.StateType] = state;
+                state.Controller = this;
                 state.OnInit();
 
                 if (isDefault)
