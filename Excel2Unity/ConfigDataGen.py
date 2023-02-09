@@ -3,7 +3,8 @@ import os
 import struct
 from FieldFormat import FieldFormat
 from Config import DataFileName
-
+from Config import KEY_MODIFIER_NAME
+from ExceptionUtil import ExceptionUtil
 class ConfigDataGen:
 
     # 保存文件
@@ -45,7 +46,7 @@ class ConfigDataGen:
 
     # 文件生成函数
     @staticmethod
-    def Process(fields, table):
+    def Process(filename, fields, table):
 
         allbytes = bytes()
 
@@ -56,6 +57,9 @@ class ConfigDataGen:
             for col in range(table.ncols):
                 if col in fields:
                     val = table.cell(row, col).value
+                    if table.cell(4, col).value == KEY_MODIFIER_NAME and val == "":
+                        ExceptionUtil.error_key(filename, row)
+                        return
                     type = table.cell(2, col).value
                     format = FieldFormat.Type2format[type][0]
                     allbytes += ConfigDataGen.Encode2Bytes(format, val)

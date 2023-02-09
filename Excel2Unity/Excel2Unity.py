@@ -1,14 +1,13 @@
 import os
 
 import xlrd2
-from Config import EXCEL_DIR
+import shutil
+from Config import EXCEL_DIR, UnityCodeDir
 from Config import EXCEL_EXT
 from Config import UNITY_TABLE_FIELD_FILTER
 from Config import UnityDataDir
 from ConfigDataGen import ConfigDataGen
 from UnityCodeGen import UnityCodeGen
-
-
 
 
 class Excel2Unity:
@@ -37,22 +36,28 @@ class Excel2Unity:
 
         allbytesdata = bytes()
 
+        # 删除旧的文件
+        deldir(UnityDataDir)
+        deldir(UnityCodeDir)
+
         # 处理每个文件
         for filename in self.mExcelFiles:
             data = xlrd2.open_workbook(filename)
-            table = data.sheets()[0]
+            table = data.sheet_by_index(0)
             fields = self.FilterFieldData(table, UNITY_TABLE_FIELD_FILTER)
 
             # 数据
-            cfgbytes = ConfigDataGen.Process(fields, table)
+            cfgbytes = ConfigDataGen.Process(filename, fields, table)
             allbytesdata += cfgbytes
 
             # 代码
             UnityCodeGen.Process(filename, fields, table)
+            print("do " + filename)
 
         # 后处理
         ConfigDataGen.Save(allbytesdata, UnityDataDir)
-        UnityCodeGen.GenConfigMangerCode(self.mExcelFiles)
+        # UnityCodeGen.GenConfigMangerCode(self.mExcelFiles) Manager就不用自动生成了。
+        UnityCodeGen.GenTableListCode(self.mExcelFiles)
 
     # 筛选字段数据
     def FilterFieldData(self, table, fieldfilter):
@@ -64,3 +69,20 @@ class Excel2Unity:
                     fields.append(index)
 
         return fields
+
+
+# 删除文件夹
+def deldir(dir):
+    if not os.path.exists(dir):
+        return False
+    if os.path.isfile(dir):
+        os.remove(dir)
+        return
+    for i in os.listdir(dir):
+        t = os.path.join(dir, i)
+        if os.path.isdir(t):
+            deldir(t)  # 重新调用次方法
+        else:
+            os.unlink(t)
+    if os.path.exists(dir):
+        os.removedirs(dir)  # 递归删除目录下面的空文件夹

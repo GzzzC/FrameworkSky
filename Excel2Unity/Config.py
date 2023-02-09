@@ -21,9 +21,7 @@ DataFileName = "Config.data"
 # --------------------------------Unity--------------------------------
 
 # 数据生成路径
-# UnityDataDir = "./../ExcelTest/Assets/StreamingAssets/Config/"
-UnityDataDir = "./../Test/"
+UnityDataDir = "./../mainProject/Assets/Art/TableData/"
 
 # 代码生成路径
-# UnityCodeDir = "./../ExcelTest/Assets/Scripts/Config/"
-UnityCodeDir = "./../Test/"
+UnityCodeDir = "./../mainProject/Assets/Scripts/TableConfig/Generate/"
